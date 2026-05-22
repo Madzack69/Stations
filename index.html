@@ -698,10 +698,10 @@ function buildDropdowns() {
   rebuildStations(all);
 }
 
-function rebuildStations(list) {
+function rebuildStations(list, currentVal) {
   selStation.innerHTML = `<option value="">Toutes les stations</option>`;
-  list.slice(0,300).forEach(s =>
-    selStation.innerHTML += `<option value="${s.id}">${esc(trunc(s.name,55))}</option>`
+  list.slice(0, 300).forEach(s =>
+    selStation.innerHTML += `<option value="${s.id}"${String(s.id) === currentVal ? " selected" : ""}>${esc(trunc(s.name, 55))}</option>`
   );
 }
 
@@ -714,14 +714,20 @@ function applyFilters() {
   const cit = selCity.value;
   const sid = selStation.value;
 
-  shown = all.filter(s => {
+  // Step 1: filter without station constraint → used to rebuild station dropdown
+  const preFiltered = all.filter(s => {
     if (activeP !== "all" && s.provider.toLowerCase() !== activeP) return false;
     if (reg && s.region !== reg) return false;
     if (cit && s.city   !== cit) return false;
-    if (sid && String(s.id) !== sid) return false;
-    if (q && ![s.name,s.city,s.address,s.region].some(f=>(f||"").toLowerCase().includes(q))) return false;
+    if (q && ![s.name, s.city, s.address, s.region].some(f => (f||"").toLowerCase().includes(q))) return false;
     return true;
   });
+
+  // Rebuild station dropdown to only show stations matching current context
+  rebuildStations(preFiltered, sid);
+
+  // Step 2: apply station constraint on top
+  shown = sid ? preFiltered.filter(s => String(s.id) === sid) : preFiltered;
 
   resultsBar.innerHTML = `
     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
