@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Jumia — Trouver un Point Relais</title>
+  <meta name="description" content="Trouvez le point relais Jumia le plus proche de chez vous au Maroc." />
+
+  <!-- PapaParse for CSV parsing -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+
+  <style>
+    /* ── Reset & base ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --orange: #f37021;
+      --orange-dark: #d95f10;
+      --orange-light: #fff3ec;
+      --gray-50: #f9fafb;
+      --gray-100: #f3f4f6;
+      --gray-200: #e5e7eb;
+      --gray-400: #9ca3af;
+      --gray-600: #4b5563;
+      --gray-800: #1f2937;
+      --white: #ffffff;
+      --radius: 10px;
+      --shadow: 0 1px 3px rgba(0,0,0,.08), 0 4px 12px rgba(0,0,0,.06);
+      --shadow-hover: 0 4px 16px rgba(0,0,0,.12);
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--gray-50);
+      color: var(--gray-800);
+      min-height: 100vh;
+    }
+
+    /* ── Header ── */
+    header {
+      background: var(--orange);
+      color: var(--white);
+      padding: 0 1.5rem;
+      display: flex;
+      align-items: center;
+      height: 60px;
+      gap: 0.75rem;
+      box-shadow: 0 2px 8px rgba(0,0,0,.15);
+    }
+    header svg { flex-shrink: 0; }
+    header h1 { font-size: 1.15rem; font-weight: 700; letter-spacing: -.01em; }
+    header span { font-size: 0.85rem; opacity: .85; margin-left: .25rem; }
+
+    /* ── Search bar ── */
+    .search-wrap {
+      background: var(--orange);
+      padding: 0 1.5rem 1.25rem;
+    }
+    .search-inner {
+      max-width: 860px;
+      margin: 0 auto;
+      display: flex;
+      gap: .75rem;
+      flex-wrap: wrap;
+    }
+    .search-box {
+      flex: 1 1 260px;
+      display: flex;
+      align-items: center;
+      background: var(--white);
+      border-radius: 8px;
+      padding: 0 .85rem;
+      gap: .5rem;
+      box-shadow: 0 1px 4px rgba(0,0,0,.1);
+    }
+    .search-box svg { color: var(--gray-400); flex-shrink: 0; }
+    .search-box input {
+      border: none;
+      outline: none;
+      width: 100%;
+      font-size: .95rem;
+      padding: .7rem 0;
+      background: transparent;
+      color: var(--gray-800);
+    }
+    .search-box input::placeholder { color: var(--gray-400); }
+
+    select.filter {
+      flex: 0 1 200px;
+      border: none;
+      border-radius: 8px;
+      padding: .7rem .9rem;
+      font-size: .9rem;
+      background: var(--white);
+      color: var(--gray-800);
+      cursor: pointer;
+      outline: none;
+      box-shadow: 0 1px 4px rgba(0,0,0,.1);
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right .75rem center;
+      padding-right: 2.25rem;
+    }
+
+    /* ── Main container ── */
+    main {
+      max-width: 860px;
+      margin: 1.5rem auto;
+      padding: 0 1rem;
+    }
+
+    /* ── Stats bar ── */
+    .stats {
+      font-size: .85rem;
+      color: var(--gray-600);
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+    }
+    .stats strong { color: var(--orange); }
+
+    /* ── Cards grid ── */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 1rem;
+    }
+
+    /* ── Station card ── */
+    .card {
+      background: var(--white);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 1rem 1.1rem;
+      display: flex;
+      flex-direction: column;
+      gap: .55rem;
+      transition: box-shadow .15s, transform .15s;
+    }
+    .card:hover {
+      box-shadow: var(--shadow-hover);
+      transform: translateY(-2px);
+    }
+
+    .card-header { display: flex; align-items: flex-start; gap: .5rem; }
+    .card-pin {
+      width: 32px; height: 32px; border-radius: 8px;
+      background: var(--orange-light);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      color: var(--orange);
+    }
+    .card-title {
+      font-size: .92rem;
+      font-weight: 600;
+      line-height: 1.35;
+      color: var(--gray-800);
+    }
+    .card-city {
+      font-size: .78rem;
+      color: var(--orange);
+      font-weight: 500;
+      background: var(--orange-light);
+      padding: .18rem .5rem;
+      border-radius: 100px;
+      display: inline-block;
+      margin-top: .15rem;
+    }
+
+    .card-row {
+      display: flex;
+      gap: .45rem;
+      font-size: .82rem;
+      color: var(--gray-600);
+      align-items: flex-start;
+    }
+    .card-row svg { flex-shrink: 0; margin-top: 1px; color: var(--gray-400); }
+
+    .card-divider {
+      border: none;
+      border-top: 1px solid var(--gray-100);
+      margin: .2rem 0;
+    }
+
+    .card-map {
+      display: inline-flex;
+      align-items: center;
+      gap: .35rem;
+      font-size: .82rem;
+      font-weight: 600;
+      color: var(--orange);
+      text-decoration: none;
+      padding: .45rem .75rem;
+      background: var(--orange-light);
+      border-radius: 6px;
+      transition: background .15s;
+      align-self: flex-start;
+    }
+    .card-map:hover { background: #ffe3d1; }
+
+    /* ── Empty / loading states ── */
+    .state {
+      text-align: center;
+      padding: 3rem 1rem;
+      color: var(--gray-400);
+    }
+    .state svg { display: block; margin: 0 auto 1rem; color: var(--gray-200); }
+    .state p { font-size: .95rem; }
+    .state small { font-size: .8rem; margin-top: .4rem; display: block; }
+
+    .spinner {
+      width: 36px; height: 36px;
+      border: 3px solid var(--gray-200);
+      border-top-color: var(--orange);
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+      margin: 0 auto 1rem;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Footer ── */
+    footer {
+      text-align: center;
+      font-size: .78rem;
+      color: var(--gray-400);
+      padding: 2rem 1rem;
+    }
+
+    @media (max-width: 520px) {
+      header h1 { font-size: 1rem; }
+      .grid { grid-template-columns: 1fr; }
+      select.filter { flex: 1 1 100%; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Header ── -->
+<header>
+  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+    <circle cx="12" cy="10" r="3"/>
+  </svg>
+  <h1>Points Relais Jumia <span>Maroc</span></h1>
+</header>
+
+<!-- ── Search ── -->
+<div class="search-wrap">
+  <div class="search-inner">
+    <div class="search-box">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+      </svg>
+      <input type="text" id="searchInput" placeholder="Rechercher par nom, ville ou adresse…" autocomplete="off" />
+    </div>
+    <select id="regionFilter" class="filter">
+      <option value="">Toutes les régions</option>
+    </select>
+    <select id="cityFilter" class="filter">
+      <option value="">Toutes les villes</option>
+    </select>
+  </div>
+</div>
+
+<!-- ── Main ── -->
+<main>
+  <div class="stats" id="stats"></div>
+  <div id="grid" class="grid"></div>
+</main>
+
+<footer>
+  Données mises à jour automatiquement depuis Google Sheets &nbsp;·&nbsp; Jumia Maroc
+</footer>
+
+<script>
+// ─────────────────────────────────────────────────────────────
+// CONFIG
+// Replace with your Apps Script Web App URL after deployment,
+// OR use the published Google Sheet CSV URL (see SETUP.md).
+//
+// Option A — Apps Script Web App:
+//   const DATA_URL = "https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec";
+//
+// Option B — Published Google Sheet CSV (simpler, no script needed):
+//   const DATA_URL = "https://docs.google.com/spreadsheets/d/YOUR_SHEET_ID/export?format=csv&gid=0";
+//
+// Option C — Raw CSV file on GitHub:
+//   const DATA_URL = "https://raw.githubusercontent.com/YOUR_USERNAME/YOUR_REPO/main/Stations%20-%20Stations.csv";
+// ─────────────────────────────────────────────────────────────
+const DATA_URL = "REPLACE_WITH_YOUR_DATA_URL";
+
+// ─────────────────────────────────────────────────────────────
+
+let allStations = [];
+
+const grid        = document.getElementById("grid");
+const stats       = document.getElementById("stats");
+const searchInput = document.getElementById("searchInput");
+const regionSel   = document.getElementById("regionFilter");
+const citySel     = document.getElementById("cityFilter");
+
+// ── Icons ──────────────────────────────────────────────────
+const icon = {
+  pin: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>`,
+  phone: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.4 2 2 0 0 1 3.6 1.22h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.79a16 16 0 0 0 6.29 6.29l.95-.94a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>`,
+  clock: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`,
+  addr: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>`,
+  map: `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6l6-3 6 3 6-3v15l-6 3-6-3-6 3z"/><line x1="9" y1="3" x2="9" y2="18"/><line x1="15" y1="6" x2="15" y2="21"/></svg>`,
+  empty: `<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/><line x1="8" y1="11" x2="14" y2="11"/></svg>`,
+};
+
+// ── Load data ───────────────────────────────────────────────
+function showLoading() {
+  grid.innerHTML = `<div class="state" style="grid-column:1/-1"><div class="spinner"></div><p>Chargement des points relais…</p></div>`;
+  stats.innerHTML = "";
+}
+
+function showError(msg) {
+  grid.innerHTML = `<div class="state" style="grid-column:1/-1">
+    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color:#f87171;margin:0 auto 1rem">
+      <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+    </svg>
+    <p>${msg}</p>
+    <small>Vérifiez que <strong>DATA_URL</strong> est correctement configuré dans index.html.</small>
+  </div>`;
+}
+
+async function loadData() {
+  showLoading();
+
+  if (DATA_URL === "REPLACE_WITH_YOUR_DATA_URL") {
+    showError("⚙️ Configurez d'abord <code>DATA_URL</code> dans index.html (voir SETUP.md).");
+    return;
+  }
+
+  try {
+    // Detect whether URL returns JSON (Apps Script) or CSV (Sheets export / GitHub)
+    const isJSON = DATA_URL.includes("script.google.com") || DATA_URL.endsWith(".json");
+
+    if (isJSON) {
+      const res = await fetch(DATA_URL);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const json = await res.json();
+      allStations = json.stations || [];
+    } else {
+      // CSV mode — use PapaParse
+      await new Promise((resolve, reject) => {
+        Papa.parse(DATA_URL, {
+          download: true,
+          header: true,
+          skipEmptyLines: true,
+          complete: (results) => {
+            allStations = results.data.map(row => ({
+              id:            row.id || "",
+              provider:      row.provider || "",
+              providerLabel: row.providerLabel || "",
+              name:          row.name || "",
+              address:       row.address || "",
+              city:          row.city || "",
+              region:        row.region || "",
+              phone:         row.phone || "",
+              hours:         row.hours || "",
+              lat:           row.lat || "",
+              lng:           row.lng || "",
+              mapLink:       row.mapLink || "",
+            }));
+            resolve();
+          },
+          error: reject,
+        });
+      });
+    }
+
+    populateFilters();
+    render();
+  } catch (err) {
+    console.error(err);
+    showError(`Impossible de charger les données. (${err.message})`);
+  }
+}
+
+// ── Filters ─────────────────────────────────────────────────
+function populateFilters() {
+  const regions = [...new Set(allStations.map(s => s.region).filter(Boolean))].sort();
+  const cities  = [...new Set(allStations.map(s => s.city).filter(Boolean))].sort();
+
+  regions.forEach(r => {
+    const opt = document.createElement("option");
+    opt.value = r; opt.textContent = r;
+    regionSel.appendChild(opt);
+  });
+
+  cities.forEach(c => {
+    const opt = document.createElement("option");
+    opt.value = c; opt.textContent = c;
+    citySel.appendChild(opt);
+  });
+}
+
+function getFiltered() {
+  const q      = searchInput.value.trim().toLowerCase();
+  const region = regionSel.value;
+  const city   = citySel.value;
+
+  return allStations.filter(s => {
+    if (region && s.region !== region) return false;
+    if (city   && s.city   !== city)   return false;
+    if (q && ![s.name, s.city, s.address, s.region].some(f => f.toLowerCase().includes(q))) return false;
+    return true;
+  });
+}
+
+// ── Render ───────────────────────────────────────────────────
+function render() {
+  const filtered = getFiltered();
+
+  // Stats
+  stats.innerHTML = filtered.length
+    ? `<strong>${filtered.length}</strong> point${filtered.length > 1 ? "s" : ""} relais trouvé${filtered.length > 1 ? "s" : ""}`
+    : "";
+
+  if (!filtered.length) {
+    grid.innerHTML = `<div class="state" style="grid-column:1/-1">
+      ${icon.empty}
+      <p>Aucun point relais trouvé.</p>
+      <small>Essayez un autre terme de recherche ou réinitialisez les filtres.</small>
+    </div>`;
+    return;
+  }
+
+  grid.innerHTML = filtered.map(s => cardHTML(s)).join("");
+}
+
+function cardHTML(s) {
+  const mapBtn = s.mapLink
+    ? `<a href="${escHtml(s.mapLink)}" target="_blank" rel="noopener" class="card-map">${icon.map} Voir sur la carte</a>`
+    : "";
+
+  return `<div class="card">
+    <div class="card-header">
+      <div class="card-pin">${icon.pin}</div>
+      <div>
+        <div class="card-title">${escHtml(s.name)}</div>
+        <span class="card-city">${escHtml(s.city)}${s.region ? " · " + escHtml(s.region) : ""}</span>
+      </div>
+    </div>
+    ${s.address ? `<div class="card-row">${icon.addr}<span>${escHtml(s.address)}</span></div>` : ""}
+    ${s.phone   ? `<div class="card-row">${icon.phone}<span>${escHtml(s.phone)}</span></div>` : ""}
+    ${s.hours   ? `<div class="card-row">${icon.clock}<span>${escHtml(s.hours)}</span></div>` : ""}
+    ${mapBtn ? `<hr class="card-divider">${mapBtn}` : ""}
+  </div>`;
+}
+
+function escHtml(str) {
+  return String(str)
+    .replace(/&/g,"&amp;").replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+
+// ── Events ───────────────────────────────────────────────────
+searchInput.addEventListener("input",  render);
+regionSel.addEventListener("change", () => {
+  // When region changes, narrow city options
+  const region = regionSel.value;
+  const prev   = citySel.value;
+  const cities = region
+    ? [...new Set(allStations.filter(s => s.region === region).map(s => s.city))].sort()
+    : [...new Set(allStations.map(s => s.city))].sort();
+
+  citySel.innerHTML = `<option value="">Toutes les villes</option>`;
+  cities.forEach(c => {
+    const opt = document.createElement("option");
+    opt.value = c; opt.textContent = c;
+    if (c === prev) opt.selected = true;
+    citySel.appendChild(opt);
+  });
+  render();
+});
+citySel.addEventListener("change", render);
+
+// ── Boot ────────────────────────────────────────────────────
+loadData();
+</script>
+</body>
+</html>
