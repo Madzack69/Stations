@@ -353,20 +353,60 @@
     @keyframes spin { to { transform: rotate(360deg); } }
 
     /* ════════════════════════════════════════
+       MOBILE TABS
+    ════════════════════════════════════════ */
+    .m-tabs {
+      display: none;
+      flex-shrink: 0;
+      background: var(--white);
+      border-bottom: 1px solid var(--border);
+    }
+    .m-tab {
+      flex: 1;
+      display: flex; align-items: center; justify-content: center; gap: .45rem;
+      padding: .65rem .5rem;
+      border: none; background: transparent;
+      font-size: .85rem; font-weight: 500;
+      color: var(--text-2); cursor: pointer;
+      border-bottom: 2.5px solid transparent;
+      transition: color .15s, border-color .15s;
+    }
+    .m-tab.active { color: var(--red); border-bottom-color: var(--red); font-weight: 600; }
+
+    /* ════════════════════════════════════════
        RESPONSIVE
     ════════════════════════════════════════ */
     @media (max-width: 768px) {
-      body { height: auto; overflow: auto; }
-      .layout { flex-direction: column; overflow: visible; }
-      .panel-list { width: 100%; order: 2; max-height: 60vh; }
-      .panel-map  { order: 1; height: 45vw; min-height: 240px; flex: none; }
-      .hero h2 { font-size: 1.15rem; }
-      .filters { flex-direction: column; }
+      /* Lock body — no page scroll, no map interference */
+      body { height: 100vh; overflow: hidden; }
+
+      /* Compact hero to save vertical space */
+      .hero { padding: .85rem 1rem .75rem; flex-shrink: 0; overflow-y: auto; }
+      .hero h2 { font-size: 1.05rem; }
+      .hero-sub { display: none; }
+      .pills { margin-bottom: .7rem; }
+      .filters { flex-direction: column; gap: .4rem; margin-bottom: .6rem; }
       .f-select, .f-search { flex: none; width: 100%; }
+      .filter-btns { gap: .4rem; }
+      .btn-apply, .btn-clear { flex: 1; justify-content: center; }
+
+      /* Show tab bar */
+      .m-tabs { display: flex; }
+
+      /* Layout fills remaining height */
+      .layout { flex: 1; min-height: 0; overflow: hidden; }
+
+      /* Both panels fill layout height */
+      .panel-list { width: 100%; flex: 1; max-height: none; }
+      .panel-map  { flex: 1; height: 100%; display: none; }
+
+      /* Tab-driven visibility */
+      .panel-map.m-show  { display: block; }
+      .panel-list.m-hide { display: none; }
     }
     @media (max-width: 480px) {
-      .hero { padding: 1.1rem 1rem .85rem; }
-      .panel-list { padding: .6rem; }
+      .hero { padding: .75rem .85rem .65rem; }
+      .panel-list { padding: .55rem; }
     }
   </style>
 </head>
@@ -425,6 +465,24 @@
     <line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/>
   </svg>
   <span>Chargement…</span>
+</div>
+
+<!-- Mobile tab bar (hidden on desktop) -->
+<div class="m-tabs">
+  <button class="m-tab active" id="mTabList" onclick="mSwitch('list')">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <line x1="9" y1="6" x2="20" y2="6"/><line x1="9" y1="12" x2="20" y2="12"/><line x1="9" y1="18" x2="20" y2="18"/>
+      <circle cx="4" cy="6" r="1" fill="currentColor"/><circle cx="4" cy="12" r="1" fill="currentColor"/><circle cx="4" cy="18" r="1" fill="currentColor"/>
+    </svg>
+    Liste
+  </button>
+  <button class="m-tab" id="mTabMap" onclick="mSwitch('map')">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M3 6l6-3 6 3 6-3v15l-6 3-6-3-6 3z"/>
+      <line x1="9" y1="3" x2="9" y2="18"/><line x1="15" y1="6" x2="15" y2="21"/>
+    </svg>
+    Carte
+  </button>
 </div>
 
 <!-- ════════════ SPLIT LAYOUT ════════════ -->
@@ -833,12 +891,18 @@ function focusStation(s, scrollCard) {
     if (scrollCard) el.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }
 
+  // On mobile, flip to map tab so the user can see the marker
+  if (window.innerWidth <= 768) mSwitch('map');
+
   // Activate marker
   const mk = markers[s.id];
   if (mk) {
     mk.setIcon(makeIcon(prov(s.provider).color, true));
-    map.flyTo(s._ll, Math.max(map.getZoom(), 14), { duration: 0.7 });
-    setTimeout(() => mk.openPopup(), 750);
+    const delay = window.innerWidth <= 768 ? 200 : 0;
+    setTimeout(() => {
+      map.flyTo(s._ll, Math.max(map.getZoom(), 14), { duration: 0.7 });
+      setTimeout(() => mk.openPopup(), 750);
+    }, delay);
   }
 }
 
@@ -863,6 +927,29 @@ selStation.addEventListener("change", applyFilters);
 
 btnApply.addEventListener("click", applyFilters);
 btnClear.addEventListener("click", clearFilters);
+
+// ══════════════════════════════════════════════════════════
+// MOBILE TAB SWITCHER
+// ══════════════════════════════════════════════════════════
+function mSwitch(tab) {
+  const panelList = document.getElementById('cardList');
+  const panelMap  = document.querySelector('.panel-map');
+  const tList     = document.getElementById('mTabList');
+  const tMap      = document.getElementById('mTabMap');
+  if (tab === 'map') {
+    panelList.classList.add('m-hide');
+    panelMap.classList.add('m-show');
+    tList.classList.remove('active');
+    tMap.classList.add('active');
+    // Leaflet needs a size recalc after being revealed
+    setTimeout(() => map && map.invalidateSize(), 150);
+  } else {
+    panelList.classList.remove('m-hide');
+    panelMap.classList.remove('m-show');
+    tList.classList.add('active');
+    tMap.classList.remove('active');
+  }
+}
 
 // ══════════════════════════════════════════════════════════
 // BOOT
