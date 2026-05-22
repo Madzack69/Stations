@@ -849,8 +849,11 @@ selRegion.addEventListener("change", () => {
   )].sort();
   selCity.innerHTML = `<option value="">Toutes les villes</option>`;
   cities.forEach(c => selCity.innerHTML += `<option value="${esc(c)}"${c===prevCity?" selected":""}>${esc(c)}</option>`);
-  // Don't auto-apply — wait for button
+  applyFilters();
 });
+
+selCity.addEventListener("change", applyFilters);
+selStation.addEventListener("change", applyFilters);
 
 btnApply.addEventListener("click", applyFilters);
 btnClear.addEventListener("click", clearFilters);
