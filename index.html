@@ -14,26 +14,36 @@
     /* ── Reset ── */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+    /* ── Jumia Brand Palette ── */
     :root {
-      --red:        #d63a2a;
-      --red-dark:   #b02d1f;
-      --red-light:  #fff0ee;
-      --bg:         #f0ebe4;
-      --white:      #ffffff;
-      --border:     #ddd5cb;
-      --border-soft:#e8e0d8;
-      --text:       #1c1917;
-      --text-2:     #57534e;
-      --text-3:     #a8a29e;
-      --radius:     10px;
-      --shadow-sm:  0 1px 3px rgba(0,0,0,.07), 0 1px 6px rgba(0,0,0,.05);
-      --shadow-md:  0 4px 16px rgba(0,0,0,.10);
+      --orange:      #ff9900;   /* Orange Peel — primary brand colour */
+      --orange-dark: #e68a00;
+      --orange-light:#fff2d6;   /* warm yellow tint */
+      --yellow:      #ffba00;   /* Selective Yellow — Jumia secondary */
+      --dark:        #403b3b;   /* brand dark */
+      --mid:         #777777;   /* brand mid grey */
+      --light:       #a8a8a8;   /* brand light grey */
+      --bg:          #fffdf6;   /* near-white brand tint */
+      --white:       #ffffff;
+      --border:      #e8dfc8;
+      --border-soft: #f0e8d5;
+      --radius:      10px;
+      --shadow-sm:   0 1px 3px rgba(0,0,0,.07), 0 1px 6px rgba(0,0,0,.05);
+      --shadow-md:   0 4px 16px rgba(0,0,0,.10);
+
+      /* alias → keeps all var(--red) / var(--red-*) references working */
+      --red:         var(--orange);
+      --red-dark:    var(--orange-dark);
+      --red-light:   var(--orange-light);
+      --text:        var(--dark);
+      --text-2:      var(--mid);
+      --text-3:      var(--light);
     }
 
     html { height: 100%; }
 
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-family: Arial, 'Helvetica Neue', Helvetica, sans-serif;
       background: var(--bg);
       color: var(--text);
       display: flex;
@@ -45,60 +55,83 @@
     /* ════════════════════════════════════════
        HEADER
     ════════════════════════════════════════ */
+    /* ════════════════════════════════════════
+       HEADER — Jumia Orange Peel + 78.5° angle
+    ════════════════════════════════════════ */
     .app-header {
-      background: #1c1917;
-      height: 58px;
+      background: var(--orange);
+      height: 60px;
       display: flex;
       align-items: center;
       justify-content: space-between;
       padding: 0 1.5rem;
       flex-shrink: 0;
       z-index: 100;
+      position: relative;
+      overflow: hidden;
+    }
+    /* 78.5° Selective Yellow angle — brand diagonal signature */
+    .app-header::before {
+      content: '';
+      position: absolute;
+      top: 0; right: -10px; bottom: 0;
+      width: 28%;
+      background: var(--yellow);
+      clip-path: polygon(18% 0%, 100% 0%, 100% 100%, 0% 100%);
+      pointer-events: none;
     }
 
-    .hdr-left { display: flex; align-items: center; gap: .75rem; }
+    .hdr-left { display: flex; align-items: center; gap: .75rem; position: relative; z-index: 1; }
 
     .hdr-icon {
       width: 36px; height: 36px; border-radius: 50%;
-      background: var(--red);
+      background: rgba(0,0,0,.15);
       display: flex; align-items: center; justify-content: center;
       flex-shrink: 0;
     }
 
-    .hdr-titles h1 { font-size: .97rem; font-weight: 700; color: #fff; }
-    .hdr-titles p  { font-size: .72rem; color: rgba(255,255,255,.52); margin-top: 1px; }
+    .hdr-titles h1 {
+      font-size: 1rem; font-weight: 900;
+      color: #fff;
+      font-family: 'Arial Black', Arial, sans-serif;
+      letter-spacing: -.01em;
+    }
+    .hdr-titles p  { font-size: .72rem; color: rgba(255,255,255,.75); margin-top: 1px; }
 
     .hdr-badge {
-      font-size: .78rem; font-weight: 600;
-      color: rgba(255,255,255,.85);
-      background: rgba(255,255,255,.1);
-      border: 1px solid rgba(255,255,255,.15);
+      font-size: .78rem; font-weight: 700;
+      color: var(--dark);
+      background: rgba(255,255,255,.85);
+      border: none;
       padding: .28rem .85rem;
       border-radius: 100px;
       white-space: nowrap;
+      position: relative; z-index: 1;
     }
 
     /* ════════════════════════════════════════
        HERO / FILTERS
     ════════════════════════════════════════ */
     .hero {
-      background: var(--bg);
+      background: var(--orange-light);   /* warm yellow tint — brand bg */
       padding: 1.5rem 1.5rem 1rem;
-      border-bottom: 1px solid var(--border);
+      border-bottom: 2px solid var(--yellow);
       flex-shrink: 0;
     }
 
     .hero h2 {
       font-size: 1.45rem;
-      font-weight: 800;
-      line-height: 1.2;
-      color: var(--text);
-      margin-bottom: .3rem;
+      font-weight: 900;
+      line-height: .95;           /* Jumia headline leading 95% */
+      color: var(--dark);
+      margin-bottom: .4rem;
+      font-family: 'Arial Black', Arial, sans-serif;
+      letter-spacing: -.01em;
     }
 
     .hero-sub {
       font-size: .82rem;
-      color: var(--text-2);
+      color: var(--mid);
       margin-bottom: 1.1rem;
       line-height: 1.5;
     }
@@ -236,8 +269,13 @@
       cursor: pointer;
       transition: border-color .14s, box-shadow .14s, transform .14s;
     }
-    .card:hover { border-color: var(--red); box-shadow: var(--shadow-md); }
-    .card.active { border-color: var(--red); background: #fff9f8; box-shadow: var(--shadow-md); }
+    .card:hover { border-color: var(--orange); box-shadow: var(--shadow-md); }
+    .card.active {
+      border-color: var(--orange);
+      border-left: 4px solid var(--orange);
+      background: var(--orange-light);
+      box-shadow: var(--shadow-md);
+    }
 
     .card-top { display: flex; align-items: flex-start; gap: .65rem; margin-bottom: .55rem; }
 
@@ -258,8 +296,9 @@
     }
 
     .card-name {
-      font-size: .88rem; font-weight: 700;
-      color: var(--text); line-height: 1.3;
+      font-size: .88rem; font-weight: 900;
+      font-family: 'Arial Black', Arial, sans-serif;
+      color: var(--dark); line-height: 1.2;
       margin-bottom: .2rem;
     }
 
@@ -421,8 +460,8 @@
       </svg>
     </div>
     <div class="hdr-titles">
-      <h1>Points Relais Maroc</h1>
-      <p>Trouvez le point de retrait le plus proche</p>
+      <h1>Points Relais Jumia</h1>
+      <p>YOUR EVERYDAY DELIVERED — proche de chez vous</p>
     </div>
   </div>
   <div class="hdr-badge" id="totalBadge">…</div>
@@ -431,7 +470,7 @@
 <!-- ════════════ HERO / FILTERS ════════════ -->
 <section class="hero">
   <h2>Où souhaitez-vous récupérer votre commande&nbsp;?</h2>
-  <p class="hero-sub">Choisissez le transporteur, puis filtrez par région, ville ou station — ou cherchez directement.</p>
+  <p class="hero-sub">Choisissez votre transporteur, puis filtrez par région ou ville — on s'occupe du reste&nbsp;!</p>
 
   <div class="pills" id="pills"></div>
 
@@ -499,11 +538,12 @@
 // ══════════════════════════════════════════════════════════
 const DATA_URL = "https://docs.google.com/spreadsheets/d/1NQIu3Isz86f3TXtfyMC_ycbB0_diOd6MxveA1yu6QjI/export?format=csv&gid=0";
 
+// Provider colours follow Jumia brand palette
 const PROVIDERS = {
-  jumia:       { label: "Jumia",      color: "#d63a2a", bg: "#fff0ee" },
-  "barid cash":{ label: "Barid Cash", color: "#1d5fad", bg: "#e8f1fb" },
-  amana:       { label: "Amana",      color: "#2e7d32", bg: "#e8f5e9" },
-  _default:    { label: "Autre",      color: "#78716c", bg: "#f5f0eb" },
+  jumia:       { label: "Jumia",      color: "#ff9900", bg: "#fff2d6" },  // Orange Peel + warm yellow tint
+  "barid cash":{ label: "Barid Cash", color: "#0057a3", bg: "#e3eef9" },  // Global Blue
+  amana:       { label: "Amana",      color: "#20ac76", bg: "#e4f5ee" },  // Greener Grass
+  _default:    { label: "Autre",      color: "#403b3b", bg: "#f0ebe4" },  // Brand dark
 };
 
 // Morocco city coords fallback (lat, lng)
